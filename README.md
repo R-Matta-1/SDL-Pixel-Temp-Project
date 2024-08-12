@@ -2,7 +2,7 @@
 I made this rendering startup for any future projects that require a fast simple startup
 
 ### todo
-- less color
+- wierdly slow mouse movements
 - Eulerian liquid sim
 - Sand simulator
 - conways game of life (lenia)

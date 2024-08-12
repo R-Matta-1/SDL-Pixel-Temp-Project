@@ -13,7 +13,6 @@
 #define cellRowSize    (StageWidth/cellSize)
 #define cellColumSize (StageHeight/cellSize)
 
-#define RGBcolor(R,G,B) ((R << 16) | (G << 8) | B)
 using namespace std;
 
 
@@ -29,7 +28,7 @@ struct Particle
 {
     int index =0;
     Uint8 density =0;
-    uint32_t color =0;
+    uint32_t color =rand();
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
@@ -37,8 +36,9 @@ bool init();
 bool close();
 bool DrawToScreen();      
 void UpdateParticles();
+inline uint32_t RGBcolor(int R,int G,int B){return (((R) << 16) | ((G) << 8) | (B));}
 bool quit = false;
-int time = 0;
+int StageTime = 0;
 
 struct MouseData{
     int x = -1;
@@ -114,7 +114,7 @@ cout<< mouse.cellX()<< " , "<<mouse.cellY()<<"\n"<<mouse.click<<"\n";
 UpdateParticles();
 DrawToScreen();
 
-time++;
+StageTime++;
    }
 
 
@@ -206,12 +206,14 @@ return true;
 
 void UpdateParticles(){
 
+
 for (int x = 0; x < StageMatrix.width; x++)
 {
     for (int y = 0; y < StageMatrix.height; y++)
     {
         Particle* CurrentParticle = StageMatrix.getPointer(x,y);
-        CurrentParticle->color = RGBcolor(x,(x+time),y);
+
+        CurrentParticle->color = RGBcolor(x+StageTime,StageTime+y,StageTime) ;
     }
     
 }
