@@ -26,19 +26,14 @@ SDL_Event e ;
 
 inline uint32_t RGBcolor(int R,int G,int B){return (((R) << 16) | ((G) << 8) | (B));}
 
-    struct Vector{
-        double i=0;
-        double j=0;
-        
-    };
+
 struct Particle
 {
     int index =0;
-    Particle* Nieghbors[8] ;
+    Particle* Nieghbors[4] ;
 
     double pressure =0;
     
-    Vector velocity;
 
     inline uint32_t color (){
         return RGBcolor(
@@ -51,6 +46,8 @@ struct Particle
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
+Matrix<float> XvelocityMatrix((cellRowSize),cellColumSize) ;
+Matrix<float> YvelocityMatrix((cellRowSize),cellColumSize) ;
 Particle nothingParticle;
 bool init();
 bool close();
@@ -164,6 +161,8 @@ bool init (){
                  for (int Yoffset = -1; Yoffset <= 1; Yoffset++)
             {
                 if(Xoffset == 0 && Yoffset == 0 ){continue;}
+                if(Xoffset != 0 && Yoffset != 0 ){continue;} // iether one has to be 0 to get the 4 nieghbors
+
                 if(StageMatrix.checkBounds(x+Xoffset,y+Yoffset)){
                     CurrentParticle->Nieghbors[neighborIndex] = StageMatrix.getPointer(x+Xoffset,y+Yoffset);
                 } else {
@@ -266,7 +265,7 @@ if (mouse.click && StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 }
 
 
-//////// alter velocity
+//////// solve for incompressability
 for (int x = 0; x < StageMatrix.width; x++)
 {
     for (int y = 0; y < StageMatrix.height; y++)
@@ -278,7 +277,7 @@ for (int x = 0; x < StageMatrix.width; x++)
     }
     
 }
-////////////////////// NOW to apply all changes to vectors
+////////////////////// defuse
 for (int x = 0; x < StageMatrix.width; x++)
 {
     for (int y = 0; y < StageMatrix.height; y++)
