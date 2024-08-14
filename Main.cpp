@@ -24,26 +24,46 @@ SDL_Texture*  Texture = 0;
 SDL_Rect DestinationRect ={};
 SDL_Event e ;
 
+inline uint32_t RGBcolor(int R,int G,int B){return (((R) << 16) | ((G) << 8) | (B));}
+
+    struct Vector{
+        double i=0;
+        double j=0;
+        
+    };
 struct Particle
 {
+    int index =0;
+    Particle* Nieghbors[8] ;
+
+    double pressure =0;
+    
+    Vector velocity;
+
+    inline uint32_t color (){
+        return RGBcolor(
+            min((int)pressure,255),
+            min((int)pressure,255),
+            min((int)pressure,255));};
     
     Uint8 density =0;
     uint32_t color =rand();
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
+Particle nothingParticle;
 bool init();
 bool close();
 bool DrawToScreen();      
 void UpdateParticles();
-inline uint32_t RGBcolor(int R,int G,int B){return (((R) << 16) | ((G) << 8) | (B));}
 bool quit = false;
 int StageTime = 0;
 
 struct MouseData{
     int x = -1;
     int y = -1;
-    bool click =0;
+    bool click = false;
+
        int cellX() const {
         return (int)(DestinationRect.x + x / cellSize);
     }
@@ -88,11 +108,15 @@ if(!init()){
 
        mouse.x = e.motion.x; 
        mouse.y = e.motion.y;
-cout<< mouse.cellX()<< " , "<<mouse.cellY()<<"\n"<<mouse.click<<"\n";
+       
         break;
 
         case SDL_MOUSEBUTTONDOWN:
         mouse.click = true;
+            if (StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()) )
+            {
+        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->pressure;
+            }
         break;
 
         case SDL_MOUSEBUTTONUP:
@@ -126,6 +150,34 @@ return 0;
 
 bool init (){
 //init Matrix
+        for (int x = 0 ; x < StageMatrix.width; x++)
+    {
+           for (int y = 0; y < StageMatrix.height; y++)
+           {
+            Particle* CurrentParticle =  StageMatrix.getPointer(x,y);
+
+            CurrentParticle->index = (y*StageMatrix.width)+x;
+
+            int neighborIndex =0;
+            for (int Xoffset = -1; Xoffset <= 1; Xoffset++)
+            {
+                 for (int Yoffset = -1; Yoffset <= 1; Yoffset++)
+            {
+                if(Xoffset == 0 && Yoffset == 0 ){continue;}
+                if(StageMatrix.checkBounds(x+Xoffset,y+Yoffset)){
+                    CurrentParticle->Nieghbors[neighborIndex] = StageMatrix.getPointer(x+Xoffset,y+Yoffset);
+                } else {
+                    CurrentParticle->Nieghbors[neighborIndex] = &nothingParticle ;
+                }
+                neighborIndex++;
+            }
+            }
+            
+
+
+           }
+
+    }
 
 
 //InitSDL
@@ -197,28 +249,54 @@ return true;
 
 void UpdateParticles(){
 
+// Managing input data
+if (mouse.click && StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
+{
+  for (int deltaX = -5; deltaX < 5; deltaX++)
+  {
+    for (int deltaY = -5; deltaY < 5; deltaY++)
+    {
+   if (StageMatrix.checkBounds(mouse.cellX()+deltaX,mouse.cellY()+deltaY))
+   {
+    StageMatrix.getPointer(mouse.cellX()+deltaX,mouse.cellY()+deltaY) ->pressure+=1;
+   }      
+    }
+    
+  }
+}
 
+
+//////// alter velocity
 for (int x = 0; x < StageMatrix.width; x++)
 {
     for (int y = 0; y < StageMatrix.height; y++)
     {
-        Particle* CurrentParticle = StageMatrix.getPointer(x,y);
-
-        CurrentParticle->color = RGBcolor(x+StageTime,StageTime+y,StageTime) ;
+            Particle* currentParticle = StageMatrix.getPointer(x,y);
+        
+        currentParticle->pressure+= sin(x/5)+ cos(y/5);
+            
     }
     
 }
+////////////////////// NOW to apply all changes to vectors
+for (int x = 0; x < StageMatrix.width; x++)
+{
+    for (int y = 0; y < StageMatrix.height; y++)
+    {
+
+            
+    }
+    
+}
+
 }
 
 bool close() {
         SDL_DestroyWindow( window );
         SDL_DestroyRenderer(renderer);
- //       SDL_FreeSurface(ScreenFront);
+ //       SDL_FreeSurface(ScreenFront); //because it was cleared when window was
         SDL_FreeSurface(BackCanvas);
         SDL_DestroyTexture(Texture);
     SDL_Quit();
     return 0;
 }
-
-
-
