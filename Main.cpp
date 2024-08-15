@@ -226,7 +226,7 @@ SDL_LockSurface(BackCanvas);
     {
        Particle* CurrentParticle = StageMatrix.getPointer(i);
 
-       *(pixels +i) = CurrentParticle->color; 
+       *(pixels +i) = CurrentParticle->color(); 
     }
     
  

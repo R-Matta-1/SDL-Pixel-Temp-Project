@@ -44,13 +44,13 @@ Matrix<Type>::Matrix(int width, int height)
 };
 
 template <typename Type>
-int Matrix<Type>::getX(int i) { return (int)i/width};
+int Matrix<Type>::getX(int i) { return (int)i/width;};
 
 template <typename Type>
-int Matrix<Type>::getY(int i) { return i%width};
+int Matrix<Type>::getY(int i) { return i%width;};
 
 template <typename Type>
-int Matrix<Type>::getIndex(int x, int y) { return (y*width)+x};
+int Matrix<Type>::getIndex(int x, int y) { return (y*width)+x;};
 
 
 //////////////////////////// BOUNDS
