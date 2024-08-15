@@ -31,18 +31,16 @@ struct Particle
 {
     int index =0;
     Particle* Nieghbors[4] ;
-
+    int NieghborNumber=0;
+    bool IsWall =0;
     double pressure =0;
     
 
     inline uint32_t color (){
         return RGBcolor(
-            min((int)pressure,255),
-            min((int)pressure,255),
-            min((int)pressure,255));};
-    
-    Uint8 density =0;
-    uint32_t color =rand();
+            NieghborNumber*62 && IsWall,
+            NieghborNumber*62 && IsWall,
+            NieghborNumber*62 && IsWall);};
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
@@ -112,7 +110,7 @@ if(!init()){
         mouse.click = true;
             if (StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()) )
             {
-        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->pressure;
+        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->NieghborNumber;
             }
         break;
 
@@ -165,6 +163,7 @@ bool init (){
 
                 if(StageMatrix.checkBounds(x+Xoffset,y+Yoffset)){
                     CurrentParticle->Nieghbors[neighborIndex] = StageMatrix.getPointer(x+Xoffset,y+Yoffset);
+                    CurrentParticle->NieghborNumber++;
                 } else {
                     CurrentParticle->Nieghbors[neighborIndex] = &nothingParticle ;
                 }
@@ -272,7 +271,7 @@ for (int x = 0; x < StageMatrix.width; x++)
     {
             Particle* currentParticle = StageMatrix.getPointer(x,y);
         
-        currentParticle->pressure+= sin(x/5)+ cos(y/5);
+        //currentParticle->pressure+= sin(x/5)+ cos(y/5);
             
     }
     
