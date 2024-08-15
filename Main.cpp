@@ -26,7 +26,7 @@ SDL_Event e ;
 
 struct Particle
 {
-    int index =0;
+    
     Uint8 density =0;
     uint32_t color =rand();
 };
@@ -126,14 +126,7 @@ return 0;
 
 bool init (){
 //init Matrix
-        for (int x = 0 ; x < StageMatrix.width; x++)
-    {
-           for (int y = 0; y < StageMatrix.height; y++)
-           {
-            StageMatrix.getPointer(x,y)->index = (x*StageMatrix.width)+y;
-           }
 
-    }
 
 //InitSDL
     if(SDL_Init(SDL_INIT_VIDEO)<0){
@@ -179,16 +172,14 @@ SDL_LockSurface(BackCanvas);
   // Access pixel data
     Uint32* pixels = (Uint32*)BackCanvas->pixels;
 
- for (int x = 0; x < cellRowSize; x++)
- {
-    for (int y = 0; y < cellColumSize; y++)
+ for (int i = 0; i < cellRowSize* cellColumSize; i++)
     {
-       Particle* CurrentParticle = StageMatrix.getPointer(x,y);
+       Particle* CurrentParticle = StageMatrix.getPointer(i);
 
-       *(pixels + CurrentParticle->index) = CurrentParticle->color; 
+       *(pixels +i) = CurrentParticle->color; 
     }
     
- }
+ 
  
 
 
