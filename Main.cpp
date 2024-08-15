@@ -38,9 +38,9 @@ struct Particle
 
     inline uint32_t color (){
         return RGBcolor(
-            NieghborNumber*62 && IsWall,
-            NieghborNumber*62 && IsWall,
-            NieghborNumber*62 && IsWall);};
+            NieghborNumber*62 ,
+            NieghborNumber*62 ,
+            NieghborNumber*62 );};
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
