@@ -31,6 +31,10 @@ struct Particle
 {
     int index =0;
     Particle* Nieghbors[4] ;
+    float* vectorU ;
+    float* vectorD ;
+    float* vectorL ;
+    float* vectorR ;
     int NieghborNumber=0;
     bool IsWall =0;
     double pressure =0;
@@ -44,8 +48,8 @@ struct Particle
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
-Matrix<float> XvelocityMatrix((cellRowSize),cellColumSize) ;
-Matrix<float> YvelocityMatrix((cellRowSize),cellColumSize) ;
+Matrix<float> XvelocityMatrix(cellRowSize+1,cellColumSize) ;
+Matrix<float> YvelocityMatrix(cellRowSize,cellColumSize+1) ;
 Particle nothingParticle;
 bool init();
 bool close();
@@ -145,19 +149,22 @@ return 0;
 
 bool init (){
 //init Matrix
-        for (int x = 0 ; x < StageMatrix.width; x++)
+int x,y;
+int Xoffset, Yoffset;
+        for ( x = 0 ; x < StageMatrix.width; x++)
     {
-           for (int y = 0; y < StageMatrix.height; y++)
+           for ( y = 0; y < StageMatrix.height; y++)
            {
             Particle* CurrentParticle =  StageMatrix.getPointer(x,y);
 
             CurrentParticle->index = (y*StageMatrix.width)+x;
 
             int neighborIndex =0;
-            for (int Xoffset = -1; Xoffset <= 1; Xoffset++)
+            
+            for ( Xoffset = -1; Xoffset <= 1; Xoffset++)
             {
-                 for (int Yoffset = -1; Yoffset <= 1; Yoffset++)
-            {
+                 for ( Yoffset = -1; Yoffset <= 1; Yoffset++)
+                {
                 if(Xoffset == 0 && Yoffset == 0 ){continue;}
                 if(Xoffset != 0 && Yoffset != 0 ){continue;} // iether one has to be 0 to get the 4 nieghbors
 
@@ -170,7 +177,12 @@ bool init (){
                 neighborIndex++;
             }
             }
-            
+            ///////////////////// Nieghbors done
+
+            CurrentParticle->vectorU = YvelocityMatrix.getPointer(x,y);
+            CurrentParticle->vectorD = YvelocityMatrix.getPointer(x,y+1);
+            CurrentParticle->vectorL = XvelocityMatrix.getPointer(x,y);
+            CurrentParticle->vectorR = XvelocityMatrix.getPointer(x+1,y);
 
 
            }
@@ -246,17 +258,23 @@ return true;
 }
 
 void UpdateParticles(){
+int deltaX, deltaY;
+int currentX, currentY;
 
-// Managing input data
+
+// Managing Mouse input data
 if (mouse.click && StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
-  for (int deltaX = -5; deltaX < 5; deltaX++)
+  for ( deltaX = -5; deltaX < 5; deltaX++)
   {
-    for (int deltaY = -5; deltaY < 5; deltaY++)
+    for ( deltaY = -5; deltaY < 5; deltaY++)
     {
-   if (StageMatrix.checkBounds(mouse.cellX()+deltaX,mouse.cellY()+deltaY))
+        currentX = mouse.cellX()+deltaX;
+        currentY = mouse.cellY()+deltaY;
+        
+   if (StageMatrix.checkBounds(currentX,currentY))
    {
-    StageMatrix.getPointer(mouse.cellX()+deltaX,mouse.cellY()+deltaY) ->pressure+=1;
+    StageMatrix.getPointer(currentX,currentY) ->pressure+=1;
    }      
     }
     
