@@ -41,12 +41,18 @@ struct Particle
     double pressure =0;
 
     inline uint32_t color (){
-        return RGBcolor(
-           min(255,20* static_cast<int>(abs(sqrtf((*Vectors[0] + *Vectors[3]) * (*Vectors[0] + *Vectors[3]) +
-                                           (*Vectors[1] + *Vectors[2]) * (*Vectors[1] + *Vectors[2]))))),
-            0,
-           min(255,20*abs(static_cast<int>(divergence * 10)))
-            );};
+        int r =0;
+        int g =0;
+        int b =0;
+        r=min(255,20* (int)sqrtf((*Vectors[0] + *Vectors[3]) * (*Vectors[0] + *Vectors[3]) +
+                               (*Vectors[1] + *Vectors[2]) * (*Vectors[1] + *Vectors[2])));
+
+        g = min(255,20*abs((int)*Vectors[0] + *Vectors[3]));
+
+        b = min(255,20*(int) abs(divergence));
+
+        return RGBcolor( r,g,b);
+        };
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
@@ -285,15 +291,15 @@ int currentX, currentY;
 // Managing Mouse input data
 if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
-  for ( deltaX = -5; deltaX < 5; deltaX++)
+ for ( deltaX = -3; deltaX <= 3; deltaX++)
   {
-    for ( deltaY = -5; deltaY < 5; deltaY++)
+    for ( deltaY = -3; deltaY <=3; deltaY++)
     {
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
    if (XvelocityMatrix.checkBounds(currentX,currentY)){
-    *XvelocityMatrix.getPointer(currentX,currentY) -= 1;
+    *XvelocityMatrix.getPointer(currentX,currentY) += 20;
    }      
     }
     
@@ -310,10 +316,10 @@ for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
         //get the current particle
         CurPrt = StageMatrix.getPointer(i);
     
-    CurPrt->divergence =  *CurPrt->Vectors[0]    //Left  where vector positive is right and down
+    CurPrt->divergence =  ( *CurPrt->Vectors[0]    //Left  where vector positive is right and down
                        +  *CurPrt->Vectors[1]   //Up    
                        -  *CurPrt->Vectors[2]   //Down  
-                       -  *CurPrt->Vectors[3];  //Right 
+                       -  *CurPrt->Vectors[3]);  //Right 
     }
 
     ////      Apply changes to vectors
@@ -356,21 +362,22 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     // find my current velocity at this point
         float thisVx = *CurFloat;
         float thisVy = 0;
-      if(YvelocityMatrix.checkBounds(x-1,y)  ) { thisVy+= YvelocityMatrix.getValue(x-1,y)   ;} ;
-      if(YvelocityMatrix.checkBounds(x,y)    ) { thisVy+= YvelocityMatrix.getValue(x,y)     ;} ;
-      if(YvelocityMatrix.checkBounds(x-1,y+1)) { thisVy+= YvelocityMatrix.getValue(x-1,y+1) ;} ;
-      if(YvelocityMatrix.checkBounds(x,y+1)  ) { thisVy+= YvelocityMatrix.getValue(x,y+1)   ;} ;
-    thisVy /= 4;
+        int nieghbors=0;
+      if(YvelocityMatrix.checkBounds(x,  y  )) { thisVy+= YvelocityMatrix.getValue(x  ,y  );nieghbors+=1 ;} ;
+      if(YvelocityMatrix.checkBounds(x-1,y+1)) { thisVy+= YvelocityMatrix.getValue(x-1,y+1);nieghbors+=1 ;} ;
+      if(YvelocityMatrix.checkBounds(x,  y+1)) { thisVy+= YvelocityMatrix.getValue(x  ,y+1);nieghbors+=1 ;} ;
+      if(YvelocityMatrix.checkBounds(x-1,y  )) { thisVy+= YvelocityMatrix.getValue(x-1,y  );nieghbors+=1 ;} ;
+    thisVy = thisVy / nieghbors;
 
     //point x is where 
     float BackTraceX = x - thisVx;
     float BackTraceY = y - thisVy;
 
     // Find theX velocty at point x 
-    float VectorUL = ( XvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY)    )?  XvelocityMatrix.getValue(((int)BackTraceX),   (int)BackTraceY)    :0  ;
-    float VectorDL = ( XvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY+1)  )?  XvelocityMatrix.getValue(((int)BackTraceX),   (int)BackTraceY+1)  :0  ;
-    float VectorUR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),   (int)BackTraceY)  )?  XvelocityMatrix.getValue(((int)BackTraceX+1),   (int)BackTraceY)  :0  ;
-    float VectorDR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),   (int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX+1),   (int)BackTraceY+1):0  ;
+    float VectorUL = ( XvelocityMatrix.checkBounds(((int)BackTraceX  ),(int)BackTraceY  ))?  XvelocityMatrix.getValue(((int)BackTraceX  ), (int)BackTraceY  )  :0  ;
+    float VectorDL = ( XvelocityMatrix.checkBounds(((int)BackTraceX  ),(int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX  ), (int)BackTraceY+1)  :0  ;
+    float VectorUR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),(int)BackTraceY  ))?  XvelocityMatrix.getValue(((int)BackTraceX+1), (int)BackTraceY  )  :0  ;
+    float VectorDR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),(int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX+1), (int)BackTraceY+1)  :0  ;
     float OffsetX = BackTraceX - ((int) BackTraceX);
     float OffsetY = BackTraceY - ((int) BackTraceY);
 
@@ -379,7 +386,8 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     float W10 = 1-OffsetY;
     float W01 = OffsetX;
     float W11 = OffsetY;
-*CurFloat = (W00*W10*VectorUL)+(W10*W11* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+
+*CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
@@ -394,11 +402,13 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
     // find my current velocity at this point
         float thisVx = 0;
         float thisVy = *CurFloat;
-      if(XvelocityMatrix.checkBounds(x-1,y)  ) { thisVx+= XvelocityMatrix.getValue(x-1,y)   ;} ;
-      if(XvelocityMatrix.checkBounds(x,y)    ) { thisVx+= XvelocityMatrix.getValue(x,y)     ;} ;
-      if(XvelocityMatrix.checkBounds(x-1,y+1)) { thisVx+= XvelocityMatrix.getValue(x-1,y+1) ;} ;
-      if(XvelocityMatrix.checkBounds(x,y+1)  ) { thisVx+= XvelocityMatrix.getValue(x,y+1)   ;} ;
-    thisVy /= 4;
+        int nieghbors=0;
+
+      if(XvelocityMatrix.checkBounds(x  ,y-1)) { thisVx+= XvelocityMatrix.getValue(x  ,y-1)  ;nieghbors+=1;} ;
+      if(XvelocityMatrix.checkBounds(x+1,y-1)) { thisVx+= XvelocityMatrix.getValue(x+1,y-1)  ;nieghbors+=1;} ;
+      if(XvelocityMatrix.checkBounds(x  ,y  )) { thisVx+= XvelocityMatrix.getValue(x  ,y  )  ;nieghbors+=1;} ;
+      if(XvelocityMatrix.checkBounds(x+1,y  )) { thisVx+= XvelocityMatrix.getValue(x+1,y  )  ;nieghbors+=1;} ;
+    thisVx =  thisVx/nieghbors;
 
     //point x is where 
     float BackTraceX = x - thisVx;
@@ -417,7 +427,7 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
     float W10 = 1-OffsetY;
     float W01 = OffsetX;
     float W11 = OffsetY;
-*CurFloat = (W00*W10*VectorUL)+(W10*W11* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+*CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
