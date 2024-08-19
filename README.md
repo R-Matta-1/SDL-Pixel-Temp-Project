@@ -1,9 +1,7 @@
-# SDL Pixel Template.
-I made this rendering startup for any future projects that require a fast simple startup
-
-### todo
-- wierdly slow mouse movements
-- Eulerian liquid sim
-- Sand simulator
-- conways game of life (lenia)
-- Diferential equasion simulator
+# fluid sim
+![GridGraph](GridGraph.png)
+## todo
+- walls
+- airoplane
+- smoke
+- fans

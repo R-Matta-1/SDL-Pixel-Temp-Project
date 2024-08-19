@@ -13,6 +13,8 @@
 #define cellRowSize    (StageWidth/cellSize)
 #define cellColumSize (StageHeight/cellSize)
 
+#define min(a,b) ((a<b)?a:b)
+
 using namespace std;
 
 
@@ -31,31 +33,35 @@ struct Particle
 {
     int index =0;
     Particle* Nieghbors[4] ;
-    float* vectorU ;
-    float* vectorD ;
-    float* vectorL ;
-    float* vectorR ;
+    float* Vectors[4];
+
     int NieghborNumber=0;
-    bool IsWall =0;
+    bool IsWall =false;
+    float divergence =0;
     double pressure =0;
-    
 
     inline uint32_t color (){
         return RGBcolor(
-            NieghborNumber*62 ,
-            NieghborNumber*62 ,
-            NieghborNumber*62 );};
+           min(255,20* static_cast<int>(abs(sqrtf((*Vectors[0] + *Vectors[3]) * (*Vectors[0] + *Vectors[3]) +
+                                           (*Vectors[1] + *Vectors[2]) * (*Vectors[1] + *Vectors[2]))))),
+            0,
+           min(255,20*abs(static_cast<int>(divergence * 10)))
+            );};
 };
 
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
+
 Matrix<float> XvelocityMatrix(cellRowSize+1,cellColumSize) ;
 Matrix<float> YvelocityMatrix(cellRowSize,cellColumSize+1) ;
+
 Particle nothingParticle;
 bool init();
 bool close();
 bool DrawToScreen();      
 void UpdateParticles();
 bool quit = false;
+bool pause = false;
+bool step = false;
 int StageTime = 0;
 
 struct MouseData{
@@ -95,9 +101,14 @@ if(!init()){
             switch (e.key.keysym.sym)
             {
             case SDLK_SPACE:
+            pause = !pause;
                 cout<<"SpaceDown\n";
                 break;
-            
+             case SDLK_RIGHT:
+            pause = true;
+            step = true;
+                cout<<"Right-Step\n";
+                break;           
             default:
                 break;
             }
@@ -114,7 +125,12 @@ if(!init()){
         mouse.click = true;
             if (StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()) )
             {
-        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->NieghborNumber;
+        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->NieghborNumber << " Nieghbors\n";
+        cout<< *StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->Vectors[0] << " Left \n";
+        cout<< *StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->Vectors[1] << " Up   \n";
+        cout<< *StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->Vectors[2] << " Down \n";
+        cout<< *StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->Vectors[3] << " Right\n";
+        cout<< StageMatrix.getPointer(mouse.cellX(),mouse.cellY())->divergence << "divergence \n";
             }
         break;
 
@@ -133,8 +149,9 @@ if(!init()){
 
 ///////////////   EVENTS End
 
+if(!pause || step ){
+UpdateParticles();step = false;}
 
-UpdateParticles();
 DrawToScreen();
 
 StageTime++;
@@ -161,12 +178,14 @@ int Xoffset, Yoffset;
 
             int neighborIndex =0;
             
+            // Go through all 4 nieghbors 
             for ( Xoffset = -1; Xoffset <= 1; Xoffset++)
             {
                  for ( Yoffset = -1; Yoffset <= 1; Yoffset++)
                 {
                 if(Xoffset == 0 && Yoffset == 0 ){continue;}
                 if(Xoffset != 0 && Yoffset != 0 ){continue;} // iether one has to be 0 to get the 4 nieghbors
+            // Go through all 4 nieghbors 
 
                 if(StageMatrix.checkBounds(x+Xoffset,y+Yoffset)){
                     CurrentParticle->Nieghbors[neighborIndex] = StageMatrix.getPointer(x+Xoffset,y+Yoffset);
@@ -178,18 +197,20 @@ int Xoffset, Yoffset;
             }
             }
             ///////////////////// Nieghbors done
-
-            CurrentParticle->vectorU = YvelocityMatrix.getPointer(x,y);
-            CurrentParticle->vectorD = YvelocityMatrix.getPointer(x,y+1);
-            CurrentParticle->vectorL = XvelocityMatrix.getPointer(x,y);
-            CurrentParticle->vectorR = XvelocityMatrix.getPointer(x+1,y);
+///////////// this alligns with the fallowing
+            CurrentParticle->Vectors[0] = XvelocityMatrix.getPointer(x,y); //left
+            CurrentParticle->Vectors[1] = YvelocityMatrix.getPointer(x,y); //up
+            CurrentParticle->Vectors[2] = YvelocityMatrix.getPointer(x,y+1);//down
+            CurrentParticle->Vectors[3] = XvelocityMatrix.getPointer(x+1,y);//right
 
 
            }
 
     }
 
-
+XvelocityMatrix.clearMatrix();
+YvelocityMatrix.clearMatrix();
+nothingParticle.IsWall = true;
 //InitSDL
     if(SDL_Init(SDL_INIT_VIDEO)<0){
         std::cout<< "\n\ninit Error\n" << SDL_GetError() <<"\n\n\n";
@@ -261,9 +282,8 @@ void UpdateParticles(){
 int deltaX, deltaY;
 int currentX, currentY;
 
-
 // Managing Mouse input data
-if (mouse.click && StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
+if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
   for ( deltaX = -5; deltaX < 5; deltaX++)
   {
@@ -272,40 +292,142 @@ if (mouse.click && StageMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
-   if (StageMatrix.checkBounds(currentX,currentY))
-   {
-    StageMatrix.getPointer(currentX,currentY) ->pressure+=1;
+   if (XvelocityMatrix.checkBounds(currentX,currentY)){
+    *XvelocityMatrix.getPointer(currentX,currentY) -= 1;
    }      
     }
     
   }
 }
 
+Particle* CurPrt;
 
-//////// solve for incompressability
-for (int x = 0; x < StageMatrix.width; x++)
-{
-    for (int y = 0; y < StageMatrix.height; y++)
+////////                    solve for incompressability
+
+///    Find Divergencies
+for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
     {
-            Particle* currentParticle = StageMatrix.getPointer(x,y);
-        
-        //currentParticle->pressure+= sin(x/5)+ cos(y/5);
-            
+        //get the current particle
+        CurPrt = StageMatrix.getPointer(i);
+    
+    CurPrt->divergence =  *CurPrt->Vectors[0]    //Left  where vector positive is right and down
+                       +  *CurPrt->Vectors[1]   //Up    
+                       -  *CurPrt->Vectors[2]   //Down  
+                       -  *CurPrt->Vectors[3];  //Right 
+    }
+
+    ////      Apply changes to vectors
+float vectorChange;
+    for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
+    {
+        //get the current particle
+         CurPrt = StageMatrix.getPointer(i);
+
+        vectorChange =   CurPrt->divergence / (float) CurPrt->NieghborNumber;
+
+
+if (!CurPrt->Nieghbors[0]->IsWall) {
+    *CurPrt->Vectors[0] +=vectorChange *-1; //FLIPING DIRECTION
+}///////////////////////////
+
+if (!CurPrt->Nieghbors[1]->IsWall) {
+    *CurPrt->Vectors[1] +=vectorChange *-1; //FLIPING DIRECTION
+}///////////////////////////
+
+if (!CurPrt->Nieghbors[2]->IsWall) {
+    *CurPrt->Vectors[2] -=vectorChange *-1; //FLIPING DIRECTION
+}///////////////////////////
+
+if (!CurPrt->Nieghbors[3]->IsWall) {
+    *CurPrt->Vectors[3] -=vectorChange *-1; //FLIPING DIRECTION
+}///////////////////////////
+
+    }
+
+/// advecation
+float* CurFloat;
+int x,y;
+
+for ( x = 0; x < XvelocityMatrix.width; x++)
+{
+    for ( y = 0; y < XvelocityMatrix.height; y++)
+       {  CurFloat = XvelocityMatrix.getPointer(x,y);
+
+    // find my current velocity at this point
+        float thisVx = *CurFloat;
+        float thisVy = 0;
+      if(YvelocityMatrix.checkBounds(x-1,y)  ) { thisVy+= YvelocityMatrix.getValue(x-1,y)   ;} ;
+      if(YvelocityMatrix.checkBounds(x,y)    ) { thisVy+= YvelocityMatrix.getValue(x,y)     ;} ;
+      if(YvelocityMatrix.checkBounds(x-1,y+1)) { thisVy+= YvelocityMatrix.getValue(x-1,y+1) ;} ;
+      if(YvelocityMatrix.checkBounds(x,y+1)  ) { thisVy+= YvelocityMatrix.getValue(x,y+1)   ;} ;
+    thisVy /= 4;
+
+    //point x is where 
+    float BackTraceX = x - thisVx;
+    float BackTraceY = y - thisVy;
+
+    // Find theX velocty at point x 
+    float VectorUL = ( XvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY)    )?  XvelocityMatrix.getValue(((int)BackTraceX),   (int)BackTraceY)    :0  ;
+    float VectorDL = ( XvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY+1)  )?  XvelocityMatrix.getValue(((int)BackTraceX),   (int)BackTraceY+1)  :0  ;
+    float VectorUR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),   (int)BackTraceY)  )?  XvelocityMatrix.getValue(((int)BackTraceX+1),   (int)BackTraceY)  :0  ;
+    float VectorDR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),   (int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX+1),   (int)BackTraceY+1):0  ;
+    float OffsetX = BackTraceX - ((int) BackTraceX);
+    float OffsetY = BackTraceY - ((int) BackTraceY);
+
+    // that is now velocity mine
+    float W00 = 1-OffsetX;
+    float W10 = 1-OffsetY;
+    float W01 = OffsetX;
+    float W11 = OffsetY;
+*CurFloat = (W00*W10*VectorUL)+(W10*W11* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
-////////////////////// defuse
-for (int x = 0; x < StageMatrix.width; x++)
-{
-    for (int y = 0; y < StageMatrix.height; y++)
-    {
 
-            
+
+// now do alllll of that agian with the y values
+for ( x = 0; x < YvelocityMatrix.width; x++)
+{
+    for ( y = 0; y < YvelocityMatrix.height; y++)
+       {  CurFloat = YvelocityMatrix.getPointer(x,y);
+
+    // find my current velocity at this point
+        float thisVx = 0;
+        float thisVy = *CurFloat;
+      if(XvelocityMatrix.checkBounds(x-1,y)  ) { thisVx+= XvelocityMatrix.getValue(x-1,y)   ;} ;
+      if(XvelocityMatrix.checkBounds(x,y)    ) { thisVx+= XvelocityMatrix.getValue(x,y)     ;} ;
+      if(XvelocityMatrix.checkBounds(x-1,y+1)) { thisVx+= XvelocityMatrix.getValue(x-1,y+1) ;} ;
+      if(XvelocityMatrix.checkBounds(x,y+1)  ) { thisVx+= XvelocityMatrix.getValue(x,y+1)   ;} ;
+    thisVy /= 4;
+
+    //point x is where 
+    float BackTraceX = x - thisVx;
+    float BackTraceY = y - thisVy;
+
+    // Find theX velocty at point x 
+    float VectorUL = ( YvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY)  )?  YvelocityMatrix.getValue(((int)BackTraceX  ),(int)BackTraceY)  :0;
+    float VectorDL = ( YvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY+1))?  YvelocityMatrix.getValue(((int)BackTraceX  ),(int)BackTraceY+1):0;
+    float VectorUR = ( YvelocityMatrix.checkBounds(((int)BackTraceX+1), (int)BackTraceY)  )?  YvelocityMatrix.getValue(((int)BackTraceX+1),(int)BackTraceY)  :0;
+    float VectorDR = ( YvelocityMatrix.checkBounds(((int)BackTraceX+1), (int)BackTraceY+1))?  YvelocityMatrix.getValue(((int)BackTraceX+1),(int)BackTraceY+1):0;
+    float OffsetX = BackTraceX - ((int) BackTraceX);
+    float OffsetY = BackTraceY - ((int) BackTraceY);
+
+    // that is now velocity mine
+    float W00 = 1-OffsetX;
+    float W10 = 1-OffsetY;
+    float W01 = OffsetX;
+    float W11 = OffsetY;
+*CurFloat = (W00*W10*VectorUL)+(W10*W11* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
+    
+ }
+ 
+  
 
-}
+
+
 
 bool close() {
         SDL_DestroyWindow( window );
