@@ -4,3 +4,4 @@ SDL2.dll
 .vscode/c_cpp_properties.json
 .vscode/settings.json
 .vscode/tasks.json
+MyMain.exe

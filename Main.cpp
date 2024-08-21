@@ -59,7 +59,9 @@ struct Particle
 Matrix<Particle> StageMatrix(cellRowSize,cellColumSize);
 
 Matrix<float> XvelocityMatrix(cellRowSize+1,cellColumSize) ;
+Matrix<float> XvelocityMatrixChange(cellRowSize+1,cellColumSize) ;
 Matrix<float> YvelocityMatrix(cellRowSize,cellColumSize+1) ;
+Matrix<float> YvelocityMatrixChange(cellRowSize,cellColumSize+1) ;
 
 Particle nothingParticle;
 bool init();
@@ -217,6 +219,9 @@ int Xoffset, Yoffset;
 
 XvelocityMatrix.clearMatrix();
 YvelocityMatrix.clearMatrix();
+XvelocityMatrixChange.clearMatrix();
+YvelocityMatrixChange.clearMatrix();
+
 nothingParticle.IsWall = true;
 //InitSDL
     if(SDL_Init(SDL_INIT_VIDEO)<0){
@@ -298,13 +303,16 @@ if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
  for ( deltaX = 0; deltaX <= 0; deltaX++)
   {
-    for ( deltaY = 0; deltaY <=0; deltaY++)
+    for ( deltaY = 0; deltaY <= 10; deltaY++)
     {
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
    if (XvelocityMatrix.checkBounds(currentX,currentY)){
-    *XvelocityMatrix.getPointer(currentX,currentY) -= 20;
+    *XvelocityMatrix.getPointer(currentX,currentY) += 20;
+   // *YvelocityMatrix.getPointer(currentX,currentY-1) -= 20;
+   // *XvelocityMatrix.getPointer(currentX-1,currentY) -= 20;
+   // *YvelocityMatrix.getPointer(currentX,currentY) += 20;
    }      
     }
     
@@ -397,7 +405,7 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     float W01 = OffsetX/DistanceBetweenCells;
     float W11 = OffsetY/DistanceBetweenCells;
 
-*CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+*XvelocityMatrixChange.getPointer(x,y) = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
@@ -437,10 +445,19 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
     float W10 = 1-OffsetY/DistanceBetweenCells;
     float W01 = OffsetX/DistanceBetweenCells;
     float W11 = OffsetY/DistanceBetweenCells;
-*CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+*YvelocityMatrixChange.getPointer(x,y) = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
 }
+    for (size_t i = 0; i < XvelocityMatrix.width*XvelocityMatrix.height; i++)
+    {
+        *XvelocityMatrix.getPointer(i) = *XvelocityMatrixChange.getPointer(i);
+    }
+    
+    for (size_t i = 0; i < YvelocityMatrix.width*YvelocityMatrix.height; i++)
+    {
+        *YvelocityMatrix.getPointer(i) = *YvelocityMatrixChange.getPointer(i);
+    }
     
  }
  
