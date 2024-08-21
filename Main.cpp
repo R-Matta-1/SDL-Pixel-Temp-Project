@@ -296,15 +296,15 @@ int currentX, currentY;
 // Managing Mouse input data
 if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
- for ( deltaX = -3; deltaX <= 3; deltaX++)
+ for ( deltaX = 0; deltaX <= 0; deltaX++)
   {
-    for ( deltaY = -3; deltaY <=3; deltaY++)
+    for ( deltaY = 0; deltaY <=0; deltaY++)
     {
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
    if (XvelocityMatrix.checkBounds(currentX,currentY)){
-    *XvelocityMatrix.getPointer(currentX,currentY) += 20;
+    *XvelocityMatrix.getPointer(currentX,currentY) -= 20;
    }      
     }
     
