@@ -10,6 +10,7 @@
 #define StageWidth 600
 #define StageHeight 750
 #define cellSize 5
+#define DistanceBetweenCells (float)1
 #define cellRowSize    (StageWidth/cellSize)
 #define cellColumSize (StageHeight/cellSize)
 
@@ -284,7 +285,11 @@ SDL_UpdateWindowSurface(window);
 return true;
 }
 
+
+
+
 void UpdateParticles(){
+
 int deltaX, deltaY;
 int currentX, currentY;
 
@@ -316,12 +321,17 @@ for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
         //get the current particle
         CurPrt = StageMatrix.getPointer(i);
     
-    CurPrt->divergence =  ( *CurPrt->Vectors[0]    //Left  where vector positive is right and down
-                       +  *CurPrt->Vectors[1]   //Up    
-                       -  *CurPrt->Vectors[2]   //Down  
-                       -  *CurPrt->Vectors[3]);  //Right 
+    CurPrt->divergence = 0;
+    for (int n = 0; n < 4; n++)
+    {
+      if (!CurPrt->Nieghbors[n]->IsWall) {
+  CurPrt->divergence += *CurPrt->Vectors[n] * ((n > 1)?-1:1);
+        }else{
+            *CurPrt->Vectors[n] =0;
     }
-
+    
+    }
+    }
     ////      Apply changes to vectors
 float vectorChange;
     for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
@@ -382,10 +392,10 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     float OffsetY = BackTraceY - ((int) BackTraceY);
 
     // that is now velocity mine
-    float W00 = 1-OffsetX;
-    float W10 = 1-OffsetY;
-    float W01 = OffsetX;
-    float W11 = OffsetY;
+    float W00 = 1-OffsetX/DistanceBetweenCells;
+    float W10 = 1-OffsetY/DistanceBetweenCells;
+    float W01 = OffsetX/DistanceBetweenCells;
+    float W11 = OffsetY/DistanceBetweenCells;
 
 *CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
@@ -423,10 +433,10 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
     float OffsetY = BackTraceY - ((int) BackTraceY);
 
     // that is now velocity mine
-    float W00 = 1-OffsetX;
-    float W10 = 1-OffsetY;
-    float W01 = OffsetX;
-    float W11 = OffsetY;
+    float W00 = 1-OffsetX/DistanceBetweenCells;
+    float W10 = 1-OffsetY/DistanceBetweenCells;
+    float W01 = OffsetX/DistanceBetweenCells;
+    float W11 = OffsetY/DistanceBetweenCells;
 *CurFloat = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
     }
     
