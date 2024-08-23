@@ -10,7 +10,7 @@
 #define StageWidth 600
 #define StageHeight 750
 #define cellSize 5
-#define DistanceBetweenCells (float)1
+#define DistanceBetweenCells (float)10
 #define cellRowSize    (StageWidth/cellSize)
 #define cellColumSize (StageHeight/cellSize)
 
@@ -76,6 +76,10 @@ int StageTime = 0;
 struct MouseData{
     int x = -1;
     int y = -1;
+
+    int xrel = 0;
+    int yrel = 0;
+
     bool click = false;
 
        int cellX() const {
@@ -127,7 +131,8 @@ if(!init()){
 
        mouse.x = e.motion.x; 
        mouse.y = e.motion.y;
-       
+      mouse.xrel = e.motion.xrel;
+      mouse.yrel = e.motion.yrel;
         break;
 
         case SDL_MOUSEBUTTONDOWN:
@@ -301,18 +306,18 @@ int currentX, currentY;
 // Managing Mouse input data
 if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
- for ( deltaX = 0; deltaX <= 0; deltaX++)
+ for ( deltaX = 0; deltaX <= 2; deltaX++)
   {
-    for ( deltaY = 0; deltaY <= 10; deltaY++)
+    for ( deltaY = 0; deltaY <= 2; deltaY++)
     {
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
    if (XvelocityMatrix.checkBounds(currentX,currentY)){
-    *XvelocityMatrix.getPointer(currentX,currentY) += 20;
+    *XvelocityMatrix.getPointer(currentX,currentY) += mouse.xrel*5;
    // *YvelocityMatrix.getPointer(currentX,currentY-1) -= 20;
    // *XvelocityMatrix.getPointer(currentX-1,currentY) -= 20;
-   // *YvelocityMatrix.getPointer(currentX,currentY) += 20;
+    *YvelocityMatrix.getPointer(currentX,currentY) += mouse.yrel*5;
    }      
     }
     
@@ -400,8 +405,8 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     float OffsetY = BackTraceY - ((int) BackTraceY);
 
     // that is now velocity mine
-    float W00 = 1-OffsetX/DistanceBetweenCells;
-    float W10 = 1-OffsetY/DistanceBetweenCells;
+    float W00 = 1-(OffsetX/DistanceBetweenCells);
+    float W10 = 1-(OffsetY/DistanceBetweenCells);
     float W01 = OffsetX/DistanceBetweenCells;
     float W11 = OffsetY/DistanceBetweenCells;
 
