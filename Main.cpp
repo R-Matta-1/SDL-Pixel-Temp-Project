@@ -10,7 +10,7 @@
 #define StageWidth 600
 #define StageHeight 750
 #define cellSize 5
-#define DistanceBetweenCells (float)10
+#define DistanceBetweenCells (float)1
 #define cellRowSize    (StageWidth/cellSize)
 #define cellColumSize (StageHeight/cellSize)
 
@@ -40,16 +40,17 @@ struct Particle
     bool IsWall =false;
     float divergence =0;
     double pressure =0;
-
+    double smoke =0;
     inline uint32_t color (){
-        int r =0;
-        int g =0;
-        int b =0;
-        r=min(255,20* (int)sqrtf((*Vectors[0] + *Vectors[3]) * (*Vectors[0] + *Vectors[3]) +
-                               (*Vectors[1] + *Vectors[2]) * (*Vectors[1] + *Vectors[2])));
-
-        g = min(255,20*abs((int)*Vectors[0] + *Vectors[3]));
-
+        int r;
+        int g;
+        int b;
+       // r=min(255,20* (int)sqrtf((*Vectors[0] + *Vectors[3]) * (*Vectors[0] + *Vectors[3]) +
+       //                        (*Vectors[1] + *Vectors[2]) * (*Vectors[1] + *Vectors[2])));
+       //
+       // g = min(255,20*abs((int)*Vectors[0] + *Vectors[3]));
+        r = smoke*255;
+        g = smoke*255;
         b = min(255,20*(int) abs(divergence));
 
         return RGBcolor( r,g,b);
@@ -68,6 +69,7 @@ bool init();
 bool close();
 bool DrawToScreen();      
 void UpdateParticles();
+float ArbitraryPointValue( Matrix<float>* matrix, float x , float y);
 bool quit = false;
 bool pause = false;
 bool step = false;
@@ -306,14 +308,19 @@ int currentX, currentY;
 // Managing Mouse input data
 if (mouse.click && XvelocityMatrix.checkBounds(mouse.cellX(),mouse.cellY()))
 {
- for ( deltaX = 0; deltaX <= 2; deltaX++)
+ for ( deltaX = 0; deltaX <= 10; deltaX++)
   {
-    for ( deltaY = 0; deltaY <= 2; deltaY++)
+    for ( deltaY = 0; deltaY <= 10; deltaY++)
     {
         currentX = mouse.cellX()+deltaX;
         currentY = mouse.cellY()+deltaY;
         
-   if (XvelocityMatrix.checkBounds(currentX,currentY)){
+   if (XvelocityMatrix.checkBounds(currentX,currentY)&&
+       YvelocityMatrix.checkBounds(currentX,currentY)&&
+       StageMatrix.checkBounds(currentX,currentY)){
+
+    StageMatrix.getPointer(currentX,currentY)->smoke =1;
+
     *XvelocityMatrix.getPointer(currentX,currentY) += mouse.xrel*5;
    // *YvelocityMatrix.getPointer(currentX,currentY-1) -= 20;
    // *XvelocityMatrix.getPointer(currentX-1,currentY) -= 20;
@@ -336,11 +343,13 @@ for (int i = 0; i < StageMatrix.width* StageMatrix.height; i++)
     
     CurPrt->divergence = 0;
     for (int n = 0; n < 4; n++)
-    {
+    {// for every nieghbor/ if that nieghbor is not a wall/
+    // add the divergence of the coresponding vector
+    // change direction acordingly based on vector directions
       if (!CurPrt->Nieghbors[n]->IsWall) {
   CurPrt->divergence += *CurPrt->Vectors[n] * ((n > 1)?-1:1);
         }else{
-            *CurPrt->Vectors[n] =0;
+         //   *CurPrt->Vectors[n] =0;
     }
     
     }
@@ -396,21 +405,7 @@ for ( x = 0; x < XvelocityMatrix.width; x++)
     float BackTraceX = x - thisVx;
     float BackTraceY = y - thisVy;
 
-    // Find theX velocty at point x 
-    float VectorUL = ( XvelocityMatrix.checkBounds(((int)BackTraceX  ),(int)BackTraceY  ))?  XvelocityMatrix.getValue(((int)BackTraceX  ), (int)BackTraceY  )  :0  ;
-    float VectorDL = ( XvelocityMatrix.checkBounds(((int)BackTraceX  ),(int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX  ), (int)BackTraceY+1)  :0  ;
-    float VectorUR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),(int)BackTraceY  ))?  XvelocityMatrix.getValue(((int)BackTraceX+1), (int)BackTraceY  )  :0  ;
-    float VectorDR = ( XvelocityMatrix.checkBounds(((int)BackTraceX+1),(int)BackTraceY+1))?  XvelocityMatrix.getValue(((int)BackTraceX+1), (int)BackTraceY+1)  :0  ;
-    float OffsetX = BackTraceX - ((int) BackTraceX);
-    float OffsetY = BackTraceY - ((int) BackTraceY);
-
-    // that is now velocity mine
-    float W00 = 1-(OffsetX/DistanceBetweenCells);
-    float W10 = 1-(OffsetY/DistanceBetweenCells);
-    float W01 = OffsetX/DistanceBetweenCells;
-    float W11 = OffsetY/DistanceBetweenCells;
-
-*XvelocityMatrixChange.getPointer(x,y) = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+    *XvelocityMatrixChange.getPointer(x,y) = ArbitraryPointValue(&XvelocityMatrix, BackTraceX, BackTraceY);
     }
     
 }
@@ -437,20 +432,9 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
     float BackTraceX = x - thisVx;
     float BackTraceY = y - thisVy;
 
-    // Find theX velocty at point x 
-    float VectorUL = ( YvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY)  )?  YvelocityMatrix.getValue(((int)BackTraceX  ),(int)BackTraceY)  :0;
-    float VectorDL = ( YvelocityMatrix.checkBounds(((int)BackTraceX),   (int)BackTraceY+1))?  YvelocityMatrix.getValue(((int)BackTraceX  ),(int)BackTraceY+1):0;
-    float VectorUR = ( YvelocityMatrix.checkBounds(((int)BackTraceX+1), (int)BackTraceY)  )?  YvelocityMatrix.getValue(((int)BackTraceX+1),(int)BackTraceY)  :0;
-    float VectorDR = ( YvelocityMatrix.checkBounds(((int)BackTraceX+1), (int)BackTraceY+1))?  YvelocityMatrix.getValue(((int)BackTraceX+1),(int)BackTraceY+1):0;
-    float OffsetX = BackTraceX - ((int) BackTraceX);
-    float OffsetY = BackTraceY - ((int) BackTraceY);
 
-    // that is now velocity mine
-    float W00 = 1-OffsetX/DistanceBetweenCells;
-    float W10 = 1-OffsetY/DistanceBetweenCells;
-    float W01 = OffsetX/DistanceBetweenCells;
-    float W11 = OffsetY/DistanceBetweenCells;
-*YvelocityMatrixChange.getPointer(x,y) = (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+    *YvelocityMatrixChange.getPointer(x,y) = ArbitraryPointValue(&YvelocityMatrix, BackTraceX, BackTraceY);
+
     }
     
 }
@@ -467,7 +451,23 @@ for ( x = 0; x < YvelocityMatrix.width; x++)
  }
  
   
+float ArbitraryPointValue( Matrix<float>* matrix, float x , float y){
 
+   float VectorUL = ( matrix->checkBounds(((int)x),   (int)y)  )?  matrix->getValue(((int)x  ),(int)y)  :0;
+    float VectorDL = (matrix->checkBounds(((int)x),   (int)y+1))?  matrix->getValue(((int)x  ),(int)y+1):0;
+    float VectorUR = ( matrix->checkBounds(((int)x+1), (int)y)  )? matrix->getValue(((int)x+1),(int)y)  :0;
+    float VectorDR = ( matrix->checkBounds(((int)x+1), (int)y+1))? matrix->getValue(((int)x+1),(int)y+1):0;
+  
+    float OffsetX = x - ((int) x);
+    float OffsetY = y - ((int) y);
+    
+    float W00 = 1-OffsetX/DistanceBetweenCells;
+    float W10 = 1-OffsetY/DistanceBetweenCells;
+    float W01 = OffsetX  /DistanceBetweenCells;
+    float W11 = OffsetY  /DistanceBetweenCells;
+
+return  (W00*W10*VectorUL)+(W01*W10* VectorUR)+ (W01*W11*VectorDL) + (W00*W11*VectorDR);
+}
 
 
 
