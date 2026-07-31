@@ -1,9 +1,13 @@
-# SDL Pixel Template.
-I made this rendering startup for any future projects that require a fast simple startup
-<video controls src="videos/Screen Recording 2024-09-03 115905.mp4" title="Title"></video>
-### todo
-- wierdly slow mouse movements
-- Eulerian liquid sim
-- Sand simulator
-- conways game of life (lenia)
-- Diferential equasion simulator
+# fluid-sim 
+
+SDL2 scaffold: window/event loop, mouse tracking, and the render
+pipeline shared by both branches.
+
+Grid uses a flat-array-backed `Matrix<T>` instead of nested
+pointers/vectors — the whole grid gets swept every frame, so contiguous
+memory keeps that cache-friendly. Particle colors are written straight
+into an off-screen surface, then blitted and scaled up in one call.
+
+This branch has no real physics — just a placeholder color gradient to
+prove out the rendering pipeline. See the `fluid` branch for the actual
+sim.
